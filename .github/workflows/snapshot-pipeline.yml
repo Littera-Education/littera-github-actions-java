@@ -1,0 +1,99 @@
+name: Littera Standardized Java Development Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      java_distribution:
+        type: string
+        default: 'temurin'
+      java_version:
+        type: string
+        default: '17'
+      nexus_host_url:
+        type: string
+        default: 'https://nexus.litteraeducation.com/repository/maven-public'
+
+    secrets:
+      nexus_username:
+        required: true
+      nexus_password:
+        required: true
+      sonar_token:
+        required: true
+      token_mvn_repo:
+        required: true
+      littera_github_ssh:
+        required: true
+      new_relic_license_key:
+        required: true
+
+jobs:
+
+  export_vars_to_outputs:
+    uses: Littera-Education/littera-github-actions/.github/workflows/export-vars.yml@v8-latest
+    with:
+      service_repo: ${{ github.repository }}
+    secrets:
+      repo_token: ${{ secrets.TOKEN_MVN_REPO }}
+
+  maven_build:
+    needs: [ export_vars_to_outputs ]
+    uses: ./.github/workflows/maven-build.yml
+    with:
+      java_distribution: ${{ inputs.java_distribution }}
+      java_version: ${{ inputs.java_version }}
+      is_release: false
+      skip_build: true
+      nexus_host_url: ${{ inputs.nexus_host_url }}
+      local_runner: ${{ needs.export_vars_to_outputs.outputs.local_runner }}
+    secrets:
+      nexus_username: ${{ secrets.nexus_username }}
+      nexus_password: ${{ secrets.nexus_password }}
+      sonar_token: ${{ secrets.sonar_token }}
+
+  maven_deploy:
+    needs: [export_vars_to_outputs, maven_build ]
+    uses: ./.github/workflows/maven-deploy.yml
+    with:
+      java_distribution: ${{ inputs.java_distribution }}
+      java_version: ${{ inputs.java_version }}
+      nexus_host_url: ${{ inputs.nexus_host_url }}
+      local_runner: ${{ needs.export_vars_to_outputs.outputs.local_runner }}
+      version: ${{ needs.maven_build.outputs.version }}
+    secrets:
+      github_ssh_key: ${{ secrets.littera_github_ssh }}
+      nexus_username: ${{ secrets.nexus_username }}
+      nexus_password: ${{ secrets.nexus_password }}
+
+  build_and_push_docker_image:
+    needs: [ export_vars_to_outputs, maven_build, maven_deploy ]
+    uses: Littera-Education/littera-github-actions/.github/workflows/docker-build-and-push-image.yml@v8-latest
+    with:
+      artifact_id: ${{ needs.maven_build.outputs.artifact_id }}
+      aws_account_id:  ${{  needs.export_vars_to_outputs.outputs.aws_account_id }}
+      group_id: ${{ needs.maven_build.outputs.group_id }}
+      nexus_host_url: ${{ inputs.nexus_host_url }}
+      local_runner: ${{ needs.export_vars_to_outputs.outputs.local_runner }}
+      service_name: ${{ needs.export_vars_to_outputs.outputs.service_name }}
+      version: ${{ needs.maven_build.outputs.version }}
+    secrets:
+      nexus_username: ${{ secrets.nexus_username }}
+      nexus_password: ${{ secrets.nexus_password }}
+
+  deploy_to_dev:
+    needs: [ export_vars_to_outputs, maven_build, maven_deploy, build_and_push_docker_image ]
+    uses: Littera-Education/littera-github-actions/.github/workflows/eks-deploy-v2.yml@v8-latest
+    with:
+      aws_account_id: ${{  needs.export_vars_to_outputs.outputs.aws_account_id }}
+      cluster_name: ${{ needs.export_vars_to_outputs.outputs.cluster_name }}
+      eks_config_branch: ${{ inputs.eks_config_branch }}
+      environment: ${{ needs.export_vars_to_outputs.outputs.environment }}
+      github_actions_deploy_timeout: ${{ needs.export_vars_to_outputs.outputs.github_actions_deploy_timeout }}
+      iam_role: ${{ needs.export_vars_to_outputs.outputs.iam_role }}
+      image_version: ${{ needs.maven_build.outputs.version }}
+      kubctl_download_url: ${{ needs.export_vars_to_outputs.outputs.kubctl_download_url }}
+      local_runner: ${{ needs.export_vars_to_outputs.outputs.local_runner }}
+      service_name: ${{ needs.export_vars_to_outputs.outputs.service_name }}
+    secrets:
+      repo_token: ${{ secrets.token_mvn_repo }}
+      NEW_RELIC_LICENSE_KEY: ${{ secrets.new_relic_license_key }}

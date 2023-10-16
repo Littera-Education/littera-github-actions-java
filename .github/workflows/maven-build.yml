@@ -1,0 +1,115 @@
+name: Maven Build
+
+on:
+  workflow_call:
+    inputs:
+      is_release:
+        required: true
+        type: boolean
+      skip_build:
+        type: boolean
+        default: false
+      java_distribution:
+        type: string
+        required: true
+      java_version:
+        type: string
+        required: true
+      nexus_host_url:
+        type: string
+        required: true
+      local_runner:
+        type: string
+        required: true
+
+    secrets:
+      nexus_username:
+        required: true
+      nexus_password:
+        required: true
+      sonar_token:
+        required: true
+
+    outputs:
+      version:
+        description: "artifact version"
+        value: ${{ jobs.maven_build.outputs.version }}
+      group_id:
+        description: "artifact group id"
+        value: ${{ jobs.maven_build.outputs.group_id }}
+      artifact_id:
+        description: "artifact id"
+        value: ${{ jobs.maven_build.outputs.artifact_id }}
+
+jobs:
+
+  maven_build:
+    name: Maven Build
+    runs-on: ${{ inputs.local_runner }}
+
+    outputs:
+      version: ${{ steps.get-project-info.outputs.VERSION }}
+      group_id: ${{ steps.get-project-info.outputs.GROUPID }}
+      artifact_id: ${{ steps.get-project-info.outputs.ARTIFACTID }}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: ${{ inputs.java_distribution }}
+          java-version: ${{ inputs.java_version }}
+          cache: 'maven'
+  
+      - name: Maven Settings XML File
+        uses: whelk-io/maven-settings-xml-action@v21
+        with:
+          repositories: '[{ "id": "litteranexus", "url": "${{ inputs.nexus_host_url }}", "releases": { "enabled": true }, "snapshots": { "enabled": true } }]'
+          plugin_repositories: '[{ "id": "litteranexus", "url": "${{ inputs.nexus_host_url }}", "releases": { "enabled": true }, "snapshots": { "enabled": true } }]'
+          servers: '[{ "id": "litteranexus", "username": "${{ secrets.nexus_username }}", "password": "${{ secrets.nexus_password }}" }]'
+          active_profiles: '[ "github" ]'
+          output_file: /home/runner/.m2/settings.xml
+  
+      - name: Get Project Info
+        id: get-project-info
+        run: |
+          VERSION=$(./mvnw -ntp help:evaluate -Dexpression=project.version -q -DforceStdout)
+          NAME=$(./mvnw -ntp help:evaluate -Dexpression=project.name -q -DforceStdout)
+          GROUPID=$(./mvnw -ntp help:evaluate -Dexpression=project.groupId -q -DforceStdout)
+          ARTIFACTID=$(./mvnw -ntp help:evaluate -Dexpression=project.artifactId -q -DforceStdout)
+
+          if [[ ! $VERSION =~ "-SNAPSHOT" ]]; then
+            echo "Current version is not a SNAPSHOT, please bump to the next SNAPSHOT to continue."
+            exit 1
+          fi
+
+          if [ ${{ inputs.is_release }} == true ]; then
+            VERSION=$(echo $VERSION | cut -d- -f1)
+          fi
+
+          echo "VERSION=$VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "NAME=$NAME"
+          echo "NAME=$NAME" >> $GITHUB_OUTPUT
+          echo "GROUPID=$GROUPID"
+          echo "GROUPID=$GROUPID" >> $GITHUB_OUTPUT
+          echo "ARTIFACTID=$ARTIFACTID"
+          echo "ARTIFACTID=$ARTIFACTID" >> $GITHUB_OUTPUT
+
+      - name: Maven Build and Sonar
+        if: ${{ !inputs.skip_build }}
+        env:
+          SONAR_TOKEN: ${{ secrets.sonar_token }}
+        run: |
+          ./mvnw -ntp clean install sonar:sonar -Dsonar.qualitygate.wait=true
+
+      - name: Cache github pages
+        id: cache-github-pages
+        uses: actions/cache@v3
+        with:
+          path: target/docs
+          key: ${{ steps.get-project-info.outputs.NAME }}-${{ steps.get-project-info.outputs.VERSION }}-github-pages
