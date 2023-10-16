@@ -89,7 +89,7 @@ jobs:
   deploy_to_dev:
     if: inputs.pipeline_flow != 'pr'
     needs: [ export_vars_to_outputs, maven_build, maven_release, build_and_push_docker_image ]
-    uses: Littera-Education/littera-github-actions/.github/workflows/eks-deploy-v2.yml@tv8-latest
+    uses: Littera-Education/littera-github-actions/.github/workflows/eks-deploy-v2.yml@v8-latest
     with:
       aws_account_id: ${{  needs.export_vars_to_outputs.outputs.aws_account_id }}
       cluster_name: ${{ needs.export_vars_to_outputs.outputs.cluster_name }}
