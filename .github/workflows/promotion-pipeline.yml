@@ -31,6 +31,7 @@ jobs:
   export_vars_to_outputs:
     uses: Littera-Education/littera-github-actions/.github/workflows/export-vars.yml@v8-latest
     with:
+      eks_config_branch: ${{ inputs.eks_config_branch }}
       environment: ${{ inputs.environment }}
       target_config: ${{ inputs.target_config }}
       service_repo: ${{ github.repository }}
