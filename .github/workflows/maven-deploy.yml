@@ -18,7 +18,7 @@ on:
       local_runner:
         type: string
         required: true
-  
+
     secrets:
       nexus_username:
         required: true
@@ -58,7 +58,7 @@ jobs:
       - name: Maven SNAPSHOT
         run: |
           ./mvnw -ntp -DskipTests=true clean deploy
-      
+
       - name: Cache github pages
         id: cache-github-pages
         uses: actions/cache@v3
