@@ -18,6 +18,16 @@ on:
         required: true
         default: "develop"
 
+    secrets:
+      NEXUS_USERNAME:
+        required: true
+      NEXUS_PASSWORD:
+        required: true
+      SONARCLOUD_TOKEN:
+        required: true
+      TOKEN_MVN_REPO:
+        required: true
+
 jobs:
 
   export_vars_to_outputs:
@@ -52,7 +62,6 @@ jobs:
       local_runner: ${{ needs.export_vars_to_outputs.outputs.local_runner }}
       version: ${{ needs.maven_build.outputs.version }}
     secrets:
-      github_ssh_key: ${{ secrets.LITTERA_GITHUB_SSH }}
       nexus_username: ${{ secrets.NEXUS_USERNAME }}
       nexus_password: ${{ secrets.NEXUS_PASSWORD }}
 
@@ -87,4 +96,3 @@ jobs:
       service_name: ${{ needs.export_vars_to_outputs.outputs.service_name }}
     secrets:
       repo_token: ${{ secrets.TOKEN_MVN_REPO }}
-      NEW_RELIC_LICENSE_KEY: ${{ secrets.NEW_RELIC_LICENSE_KEY }}

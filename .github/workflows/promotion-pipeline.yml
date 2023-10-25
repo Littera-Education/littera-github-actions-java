@@ -23,7 +23,7 @@ on:
         required: true
 
     secrets:
-      token_mvn_repo:
+      TOKEN_MVN_REPO:
         required: true
 
 jobs:
@@ -54,4 +54,3 @@ jobs:
       local_runner: ${{ needs.export_vars_to_outputs.outputs.local_runner }}
     secrets:
       repo_token: ${{ secrets.TOKEN_MVN_REPO }}
-      NEW_RELIC_LICENSE_KEY: ${{ secrets.NEW_RELIC_LICENSE_KEY }}

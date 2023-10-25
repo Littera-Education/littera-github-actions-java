@@ -23,17 +23,15 @@ on:
         default: "develop"
 
     secrets:
-      nexus_username:
+      LITTERA_GITHUB_SSH:
         required: true
-      nexus_password:
+      NEXUS_USERNAME:
         required: true
-      sonar_token:
+      NEXUS_PASSWORD:
         required: true
-      token_mvn_repo:
+      SONARCLOUD_TOKEN:
         required: true
-      littera_github_ssh:
-        required: true
-      new_relic_license_key:
+      TOKEN_MVN_REPO:
         required: true
 
 jobs:
@@ -55,9 +53,9 @@ jobs:
       nexus_host_url: ${{ inputs.nexus_host_url }}
       local_runner: ${{ needs.export_vars_to_outputs.outputs.local_runner }}
     secrets:
-      nexus_username: ${{ secrets.nexus_username }}
-      nexus_password: ${{ secrets.nexus_password }}
-      sonar_token: ${{ secrets.sonar_token }}
+      nexus_username: ${{ secrets.NEXUS_USERNAME }}
+      nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+      sonar_token: ${{ secrets.SONARCLOUD_TOKEN }}
 
   maven_release:
     if: inputs.pipeline_flow != 'pr'
@@ -71,9 +69,9 @@ jobs:
       version: ${{ needs.maven_build.outputs.version }}
       version_increment_type: ${{ inputs.pipeline_flow == 'hotfix' && 'patch' || 'minor' }}
     secrets:
-      github_ssh_key: ${{ secrets.littera_github_ssh }}
-      nexus_username: ${{ secrets.nexus_username }}
-      nexus_password: ${{ secrets.nexus_password }}
+      github_ssh_key: ${{ secrets.LITTERA_GITHUB_SSH }}
+      nexus_username: ${{ secrets.NEXUS_USERNAME }}
+      nexus_password: ${{ secrets.NEXUS_PASSWORD }}
 
   build_and_push_docker_image:
     if: inputs.pipeline_flow != 'pr'
@@ -88,8 +86,8 @@ jobs:
       service_name: ${{ needs.export_vars_to_outputs.outputs.service_name }}
       version: ${{ needs.maven_build.outputs.version }}
     secrets:
-      nexus_username: ${{ secrets.nexus_username }}
-      nexus_password: ${{ secrets.nexus_password }}
+      nexus_username: ${{ secrets.NEXUS_USERNAME }}
+      nexus_password: ${{ secrets.NEXUS_PASSWORD }}
 
   deploy_to_dev:
     if: inputs.pipeline_flow != 'pr'
@@ -107,5 +105,4 @@ jobs:
       local_runner: ${{ needs.export_vars_to_outputs.outputs.local_runner }}
       service_name: ${{ needs.export_vars_to_outputs.outputs.service_name }}
     secrets:
-      repo_token: ${{ secrets.token_mvn_repo }}
-      NEW_RELIC_LICENSE_KEY: ${{ secrets.new_relic_license_key }}
+      repo_token: ${{ secrets.TOKEN_MVN_REPO }}
