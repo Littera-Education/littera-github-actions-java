@@ -8,11 +8,11 @@ on:
         description: "Target environment"
         default: "dev"
       image_version:
-        type: "string"        
+        type: "string"
         description: "Image version"
         required: true
       eks_config_branch:
-        type: "string"        
+        type: "string"
         description: "The branch in 'littera-eks-config' to pull EKS yaml configs. Leave as 'develop'."
         required: true
         default: "develop"
@@ -36,7 +36,7 @@ jobs:
       service_repo: ${{ github.repository }}
     secrets:
       repo_token: ${{ secrets.TOKEN_MVN_REPO }}
-  
+
   deploy_to_environment:
     needs:
       - export_vars_to_outputs
