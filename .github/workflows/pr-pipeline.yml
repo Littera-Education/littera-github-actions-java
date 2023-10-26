@@ -1,0 +1,55 @@
+name: Littera Standardized Java Development Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      java_distribution:
+        type: string
+        default: 'temurin'
+      java_version:
+        type: string
+        default: '17'
+      nexus_host_url:
+        type: string
+        default: 'https://nexus.litteraeducation.com/repository/maven-public'
+      eks_config_branch:
+        type: "string"
+        description: "The branch in 'littera-eks-config' to pull EKS yaml configs. Leave as 'develop'."
+        required: true
+        default: "develop"
+
+    secrets:
+      LITTERA_GITHUB_SSH:
+        required: true
+      NEXUS_USERNAME:
+        required: true
+      NEXUS_PASSWORD:
+        required: true
+      SONARCLOUD_TOKEN:
+        required: true
+      TOKEN_MVN_REPO:
+        required: true
+
+jobs:
+
+  export_vars_to_outputs:
+    uses: Littera-Education/littera-github-actions/.github/workflows/export-vars.yml@v8-latest
+    with:
+      eks_config_branch: ${{ inputs.eks_config_branch }}
+      service_repo: ${{ github.repository }}
+    secrets:
+      repo_token: ${{ secrets.TOKEN_MVN_REPO }}
+
+  maven_build:
+    needs: [ export_vars_to_outputs ]
+    uses: ./.github/workflows/maven-build.yml
+    with:
+      java_distribution: ${{ inputs.java_distribution }}
+      java_version: ${{ inputs.java_version }}
+      is_release: false
+      nexus_host_url: ${{ inputs.nexus_host_url }}
+      local_runner: ${{ needs.export_vars_to_outputs.outputs.local_runner }}
+    secrets:
+      nexus_username: ${{ secrets.NEXUS_USERNAME }}
+      nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+      sonar_token: ${{ secrets.SONARCLOUD_TOKEN }}

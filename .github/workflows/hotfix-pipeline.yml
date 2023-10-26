@@ -63,7 +63,7 @@ jobs:
       nexus_host_url: ${{ inputs.nexus_host_url }}
       local_runner: ${{ needs.export_vars_to_outputs.outputs.local_runner }}
       version: ${{ needs.maven_build.outputs.version }}
-      version_increment_type: 'minor'
+      version_increment_type: 'patch'
     secrets:
       github_ssh_key: ${{ secrets.LITTERA_GITHUB_SSH }}
       nexus_username: ${{ secrets.NEXUS_USERNAME }}
