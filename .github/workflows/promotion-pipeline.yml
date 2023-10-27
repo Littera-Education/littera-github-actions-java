@@ -14,7 +14,6 @@ on:
       eks_config_branch:
         type: "string"
         description: "The branch in 'littera-eks-config' to pull EKS yaml configs. Leave as 'develop'."
-        required: true
         default: "develop"
       target_config:
         type: "string"
